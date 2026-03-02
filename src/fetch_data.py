@@ -84,9 +84,13 @@ def pick_players(entries, count=10):
 
 
 def fetch_player_results(client, player_entry):
-    summoner_id = player_entry["summonerId"]
-    summoner = client.get(f"{TR1_BASE}/tft/summoner/v1/summoners/{summoner_id}")
-    puuid = summoner["puuid"]
+    puuid = player_entry.get("puuid")
+    if not puuid:
+        summoner_id = player_entry.get("summonerId")
+        if not summoner_id:
+            raise KeyError("Player entry is missing both 'puuid' and 'summonerId'")
+        summoner = client.get(f"{TR1_BASE}/tft/summoner/v1/summoners/{summoner_id}")
+        puuid = summoner["puuid"]
     match_ids = client.get(
         f"{EUROPE_BASE}/tft/match/v1/matches/by-puuid/{puuid}/ids",
         params={"start": 0, "count": 20},
