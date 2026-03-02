@@ -24,33 +24,42 @@ def _table(df):
     return "\n".join(lines)
 
 
+def _format_report_table(df):
+    if df.empty:
+        return df
+    formatted = df.copy()
+    for column in ["Pick Rate", "Win Rate", "Top 4 Rate"]:
+        if column in formatted:
+            formatted[column] = formatted[column].map(_percent)
+    for column in ["Avg Placement", "Avg Place"]:
+        if column in formatted:
+            formatted[column] = formatted[column].map(_float)
+    return formatted
+
+
 def generate_readme(report, output_path="README.md"):
+    comps_df = _format_report_table(report["comps_df"]).rename(columns={"Avg Placement": "Avg Place"})
+    traits_df = _format_report_table(report["traits_df"]).rename(columns={"Avg Placement": "Avg Place"})
+    carries_df = _format_report_table(report["carries_df"]).rename(columns={"Avg Placement": "Avg Place"})
+
     content = "\n".join(
         [
             "# TFT TR Master+ Meta Report",
             "",
             f"Patch: {report['patch']}",
-            f"Total Matches Analyzed: {report['total_matches']}",
+            f"Total Games Analyzed: {report['total_matches']}",
             "",
-            "## Core Statistics",
+            "## Top Meta Comps",
             "",
-            "| Metric | Value |",
-            "| --- | --- |",
-            f"| Average Placement | {_float(report['average_placement'])} |",
-            f"| Win Rate | {_percent(report['win_rate'])} |",
-            f"| Top 4 Rate | {_percent(report['top4_rate'])} |",
+            _table(comps_df),
             "",
-            "## Most Played Traits",
+            "## Trait Performance",
             "",
-            _table(report["traits_df"]),
+            _table(traits_df),
             "",
-            "## Most Played Carries",
+            "## Top Carries",
             "",
-            _table(report["carries_df"]),
-            "",
-            "## Most Used Items",
-            "",
-            _table(report["items_df"]),
+            _table(carries_df),
             "",
         ]
     )
