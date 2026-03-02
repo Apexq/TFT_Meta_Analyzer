@@ -5,6 +5,7 @@ import time
 from collections import deque
 
 import requests
+from dotenv import load_dotenv
 
 from analyze import analyze_matches
 from generate_readme import generate_readme
@@ -40,7 +41,10 @@ class RiotClient:
         backoff = 1
         for _ in range(5):
             self._throttle()
-            response = self.session.get(url, params=params, timeout=20)
+            try:
+                response = self.session.get(url, params=params, timeout=20)
+            except requests.RequestException as exc:
+                raise RuntimeError(f"Request failed for {url}") from exc
             now = time.monotonic()
             self.req_last_second.append(now)
             self.req_last_two_min.append(now)
@@ -52,7 +56,10 @@ class RiotClient:
                 time.sleep(wait_time)
                 backoff = min(backoff * 2, 30)
                 continue
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                raise RuntimeError(f"Request failed for {url} with status {response.status_code}") from exc
             return response.json()
         raise RuntimeError(f"Failed after retries: {url}")
 
@@ -97,6 +104,7 @@ def fetch_player_results(client, player_entry):
 
 def run():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    load_dotenv()
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
         raise EnvironmentError("RIOT_API_KEY is not set.")
